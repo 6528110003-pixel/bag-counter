@@ -1,53 +1,42 @@
 from flask import Flask, request, jsonify
-from inference_sdk import InferenceHTTPClient
+from ultralytics import YOLO
+import tempfile
 
 app = Flask(__name__)
 
-# ===== Roboflow Client =====
-CLIENT = InferenceHTTPClient(
-    api_url="https://detect.roboflow.com",
-    api_key="YOUR_ROBOFLOW_API_KEY"   # ใส่ API KEY ของคุณ
-)
+# โหลดโมเดล
+model = YOLO("best.pt")
 
-# ===== หน้า Home =====
+
 @app.route("/")
 def home():
     return {
         "status": "running",
-        "project": "Bag Counter AI"
+        "service": "AI Bag Counter"
     }
 
-# ===== นับกระสอบ =====
+
 @app.route("/predict", methods=["POST"])
 def predict():
 
-    data = request.json
+    if "image" not in request.files:
+        return {"error": "no image uploaded"}, 400
 
-    if "image" not in data:
-        return jsonify({"error": "No image provided"}), 400
+    file = request.files["image"]
 
-    image_url = data["image"]
+    # บันทึกไฟล์ชั่วคราว
+    temp = tempfile.NamedTemporaryFile(delete=False)
+    file.save(temp.name)
 
-    try:
-        result = CLIENT.infer(
-            image_url,
-            model_id="sack-c8cro/2"   # ใส่ model id ของคุณ
-        )
+    # รัน AI
+    results = model(temp.name)
 
-        predictions = result.get("predictions", [])
-        count = len(predictions)
+    count = len(results[0].boxes)
 
-        return jsonify({
-            "count": count,
-            "detections": predictions
-        })
-
-    except Exception as e:
-        return jsonify({
-            "error": str(e)
-        }), 500
+    return jsonify({
+        "count": count
+    })
 
 
-# ===== Run Server =====
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
