@@ -10,32 +10,25 @@ model = YOLO("best.pt")
 
 @app.route("/")
 def home():
-    return {
-        "status": "running",
-        "service": "AI Bag Counter"
-    }
+    return {"status": "running", "service": "Bag Counter AI"}
 
 
 @app.route("/predict", methods=["POST"])
 def predict():
 
     if "image" not in request.files:
-        return {"error": "no image uploaded"}, 400
+        return {"error": "no image"}, 400
 
     file = request.files["image"]
 
-    # บันทึกไฟล์ชั่วคราว
     temp = tempfile.NamedTemporaryFile(delete=False)
     file.save(temp.name)
 
-    # รัน AI
     results = model(temp.name)
 
     count = len(results[0].boxes)
 
-    return jsonify({
-        "count": count
-    })
+    return jsonify({"count": count})
 
 
 if __name__ == "__main__":
