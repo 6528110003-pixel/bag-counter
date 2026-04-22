@@ -1,33 +1,53 @@
 from flask import Flask, request, jsonify
 from inference_sdk import InferenceHTTPClient
-import base64
 
 app = Flask(__name__)
 
-client = InferenceHTTPClient(
-    api_url="https://serverless.roboflow.com",
-    api_key="ใส่_API_KEY_ของคุณ"
+# ===== Roboflow Client =====
+CLIENT = InferenceHTTPClient(
+    api_url="https://detect.roboflow.com",
+    api_key="YOUR_ROBOFLOW_API_KEY"   # ใส่ API KEY ของคุณ
 )
 
+# ===== หน้า Home =====
 @app.route("/")
 def home():
-    return "AI Sack Counter Running"
+    return {
+        "status": "running",
+        "project": "Bag Counter AI"
+    }
 
+# ===== นับกระสอบ =====
 @app.route("/predict", methods=["POST"])
 def predict():
 
-    file = request.files["image"]
-    image_bytes = file.read()
+    data = request.json
 
-    result = client.run_workflow(
-        workspace_name="s-workspace-bkeck",
-        workflow_name="detect-count-and-visualize",
-        images={
-            "image": image_bytes
-        }
-    )
+    if "image" not in data:
+        return jsonify({"error": "No image provided"}), 400
 
-    return jsonify(result)
+    image_url = data["image"]
 
+    try:
+        result = CLIENT.infer(
+            image_url,
+            model_id="sack-c8cro/2"   # ใส่ model id ของคุณ
+        )
+
+        predictions = result.get("predictions", [])
+        count = len(predictions)
+
+        return jsonify({
+            "count": count,
+            "detections": predictions
+        })
+
+    except Exception as e:
+        return jsonify({
+            "error": str(e)
+        }), 500
+
+
+# ===== Run Server =====
 if __name__ == "__main__":
-    app.run()
+    app.run(host="0.0.0.0", port=8080)
