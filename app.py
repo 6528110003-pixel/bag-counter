@@ -1,38 +1,33 @@
-from flask import Flask, render_template, request
-from ultralytics import YOLO
-import os
+from flask import Flask, request, jsonify
+from inference_sdk import InferenceHTTPClient
+import base64
 
 app = Flask(__name__)
 
-UPLOAD_FOLDER = "uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+client = InferenceHTTPClient(
+    api_url="https://serverless.roboflow.com",
+    api_key="ใส่_API_KEY_ของคุณ"
+)
 
+@app.route("/")
+def home():
+    return "AI Sack Counter Running"
 
-@app.route("/", methods=["GET", "POST"])
-def index():
+@app.route("/predict", methods=["POST"])
+def predict():
 
-    count = None
-    image_path = None
+    file = request.files["image"]
+    image_bytes = file.read()
 
-    if request.method == "POST":
+    result = client.run_workflow(
+        workspace_name="s-workspace-bkeck",
+        workflow_name="detect-count-and-visualize",
+        images={
+            "image": image_bytes
+        }
+    )
 
-        file = request.files["image"]
-        path = os.path.join(UPLOAD_FOLDER, file.filename)
-        file.save(path)
-
-        # โหลดโมเดลตอนใช้งาน
-        model = YOLO("best.pt")
-
-        results = model(path)
-
-        count = len(results[0].boxes)
-
-        image_path = path
-
-    return render_template("index.html", count=count, image=image_path)
-
+    return jsonify(result)
 
 if __name__ == "__main__":
-
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run()
