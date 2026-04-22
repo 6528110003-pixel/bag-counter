@@ -1,5 +1,5 @@
 flask
 gunicorn
-inference-sdk
+requests
 ultralytics
 opencv-python
