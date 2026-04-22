@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Bag Counter</title>
+</head>
+
+<body>
+
+<h1>AI Bag Counting System</h1>
+
+<form method="POST" enctype="multipart/form-data">
+
+<input type="file" name="image" required>
+
+<button type="submit">Upload</button>
+
+</form>
+
+{% if count %}
+
+<h2>พบกระสอบ {{count}} ใบ</h2>
+
+<img src="{{image}}" width="500">
+
+{% endif %}
+
+</body>
+
+</html>
